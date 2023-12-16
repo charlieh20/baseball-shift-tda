@@ -18,7 +18,6 @@ def similarity_matrix_teams(df, subset_sample_percentage=0.8, number_of_pd=100, 
         optimal_degree = find_optimal_degree(tmp_df)
         
         for _ in range(number_of_pd):
-            #print(team, _)
 
             tmp = tmp_df.sample(int(subset_sample_percentage * tmp_df.shape[0]))
 
@@ -33,23 +32,27 @@ def similarity_matrix_teams(df, subset_sample_percentage=0.8, number_of_pd=100, 
     matrix_dictionary = {}
     visit = set()
 
-    for teams1 in MLB_teams:
-        for teams2 in MLB_teams:
-            
-            if (teams1, teams2) not in visit and (teams2, teams1) not in visit:
+    for i in range(len(MLB_teams)):
+        team1 = MLB_teams[i]
+        for j in range(i, len(MLB_teams)):
+            team2 = MLB_teams[j]
+
+            if (team1, team2) not in visit and (team2, team1) not in visit:
                 
-                matrix_dictionary[(teams1, teams2)] = []
+                matrix_dictionary[(team1, team2)] = []
                 
                 for _ in range(pairwise_comparisons):
                     
-                    dist = random_W_distance(dgms_by_teams[teams1], dgms_by_teams[teams2])
+                    dist = random_W_distance(dgms_by_teams[team1], dgms_by_teams[team2])
                     
                     if dist > 100:
-                        print(teams1, teams2)
+                        print(team1, team2)
                  
-                    matrix_dictionary[(teams1, teams2)].append(dist)
+                    matrix_dictionary[(team1, team2)].append(dist)
                 
-                matrix_dictionary[(teams1, teams2)] = sum(matrix_dictionary[(teams1, teams2)]) / len(matrix_dictionary[(teams1, teams2)])
+                matrix_dictionary[(team1, team2)] = sum(matrix_dictionary[(team1, team2)]) / len(matrix_dictionary[(team1, team2)])
+                if i != j:
+                    matrix_dictionary[(team2, team1)] = matrix_dictionary[(team1, team2)]
 
     return matrix_dictionary
 
@@ -92,8 +95,11 @@ def similarity_matrix_dates(df, subset_sample_percentage=0.8, number_of_pd=100, 
     matrix_dictionary = {}
     visit = set()
 
-    for date1 in filter_dates:
-        for date2 in filter_dates:
+    for i in range(len(filter_dates)):
+        date1 = filter_dates[i]
+        for j in range(i, len(filter_dates)):
+            date2 = filter_dates[j]
+
             date1_key = str(date1[0]) + str(date1[1])
             date2_key = str(date2[0]) + str(date2[1])
             
@@ -111,16 +117,15 @@ def similarity_matrix_dates(df, subset_sample_percentage=0.8, number_of_pd=100, 
                     matrix_dictionary[(date1_key, date2_key)].append(dist)
                 
                 matrix_dictionary[(date1_key, date2_key)] = sum(matrix_dictionary[(date1_key, date2_key)]) / len(matrix_dictionary[(date1_key, date2_key)])
+                if i != j:
+                    matrix_dictionary[(date2_key, date1_key)] = matrix_dictionary[(date1_key, date2_key)]
 
     return matrix_dictionary
 
 def similarity_matrix_handedness(df, subset_sample_percentage=0.8, number_of_pd=100, pairwise_comparisons=100):
 
     #df[(pd.to_datetime(df.date).dt.year == 2023) & (pd.to_datetime(df.date).dt.month == 9)]
-    filters = [
-        "L",
-        "R"
-        ]
+    filters = ["L", "R"]
 
     dgms_by_hand = {}
 
@@ -169,9 +174,12 @@ def similarity_matrix_rank(df, subset_sample_percentage=0.8, number_of_pd=100, p
 
     dgms_by_rnk = {}
 
-    for i in range(0, 10):
-        rnk_range = range(i * 10 + 1, (i+1) * 10 + 1)
-        tmp_key = str(rnk_range)
+    ranges = [range(i * 60 + 1, (i+1) * 60 + 1) for i in range(0, 3)]
+    range_keys = [f'Ranks {i * 60 + 1} - {(i+1) * 60}' for i in range(0, 3)]
+
+    for i in range(len(ranges)):
+        rnk_range = ranges[i]
+        tmp_key = range_keys[i]
         tmp_df = df[(df.shift_rank >= min(rnk_range)) & (df.shift_rank <= max(rnk_range))]
         
         optimal_degree = find_optimal_degree(tmp_df)
@@ -190,11 +198,10 @@ def similarity_matrix_rank(df, subset_sample_percentage=0.8, number_of_pd=100, p
     
     visit = set()
 
-    lst_keys = [str(range(i * 10 + 1, (i+1) * 10 + 1)) for i in range(0, 10)]
-
-    for rnk1 in lst_keys:
-        for rnk2 in lst_keys:
-            
+    for i in range(len(range_keys)):
+        rnk1 = range_keys[i]
+        for j in range(i, len(range_keys)):
+            rnk2 = range_keys[j]
             if (rnk1, rnk2) not in visit and (rnk2, rnk1) not in visit:
                 
                 matrix_dictionary[(rnk1, rnk2)] = []
@@ -209,6 +216,8 @@ def similarity_matrix_rank(df, subset_sample_percentage=0.8, number_of_pd=100, p
                     matrix_dictionary[(rnk1, rnk2)].append(dist)
                 
                 matrix_dictionary[(rnk1, rnk2)] = sum(matrix_dictionary[(rnk1, rnk2)]) / len(matrix_dictionary[(rnk1, rnk2)])
+                if i != j:
+                    matrix_dictionary[(rnk2, rnk1)] = matrix_dictionary[(rnk1, rnk2)]
 
     return matrix_dictionary
 
@@ -301,13 +310,16 @@ def similarity_matrix_teams_dates(df, subset_sample_percentage=0.8, number_of_pd
                 if date_key not in dgms_by_date:
                     dgms_by_date[date_key] = []
                 dgms_by_date[date_key].append(diagram_points)
-   #for k, v in dgms_by_date.items():
-    #    print(k, v)
+
     matrix_dictionary = {}
     visit = set()
 
-    for key1 in unique_keys:
-        for key2 in unique_keys:
+    unique_keys = sorted(list(unique_keys))
+
+    for i in range(len(unique_keys)):
+        key1 = unique_keys[i]
+        for j in range(i, len(unique_keys)):
+            key2 = unique_keys[j]
             
             if (key1, key2) not in visit and (key2, key1) not in visit and key1 in dgms_by_date and key2 in dgms_by_date:
                 
@@ -323,21 +335,88 @@ def similarity_matrix_teams_dates(df, subset_sample_percentage=0.8, number_of_pd
                     matrix_dictionary[(key1, key2)].append(dist)
                 
                 matrix_dictionary[(key1, key2)] = sum(matrix_dictionary[(key1, key2)]) / len(matrix_dictionary[(key1, key2)])
+                if i != j:
+                    matrix_dictionary[(key2, key1)] = matrix_dictionary[(key1, key2)]
+
+    return matrix_dictionary
+
+def similarity_matrix_years_hand(df, subset_sample_percentage=0.8, number_of_pd=100, pairwise_comparisons=100):
+
+    dgms_by_date = {}
+    
+    years = [2022, 2023]
+    hands = ["L", "R"]
+
+    unique_keys = set()
+
+    for yr in years:
+        
+        for hand in hands:
+        
+            date_key =  f'{str(yr)}, {hand}'
+            
+            unique_keys.add(date_key)
+            
+            tmp_df = df[(pd.to_datetime(df.date).dt.year == yr) & (df.batter_handedness == hand)]
+            
+            optimal_degree = find_optimal_degree(tmp_df)
+            
+            for _ in range(number_of_pd):
+                
+                tmp = tmp_df.sample(int(subset_sample_percentage * tmp_df.shape[0]))
+                
+                try:
+                    diagram_points = df_to_pdgm(tmp, optimal_degree)
+                
+                except:
+                    _ -= 1
+                    continue
+                
+                if date_key not in dgms_by_date:
+                    dgms_by_date[date_key] = []
+                dgms_by_date[date_key].append(diagram_points)
+
+    matrix_dictionary = {}
+    visit = set()
+
+    unique_keys = sorted(list(unique_keys))
+
+    for i in range(len(unique_keys)):
+        key1 = unique_keys[i]
+        for j in range(i, len(unique_keys)):
+            key2 = unique_keys[j]
+            
+            if (key1, key2) not in visit and (key2, key1) not in visit and key1 in dgms_by_date and key2 in dgms_by_date:
+                
+                matrix_dictionary[(key1, key2)] = []
+                
+                for _ in range(pairwise_comparisons):
+                    
+                    dist = random_W_distance(dgms_by_date[key1], dgms_by_date[key2])
+                    
+                    if dist > 100:
+                        print(key1, key2)
+                    
+                    matrix_dictionary[(key1, key2)].append(dist)
+                
+                matrix_dictionary[(key1, key2)] = sum(matrix_dictionary[(key1, key2)]) / len(matrix_dictionary[(key1, key2)])
+                if i != j:
+                    matrix_dictionary[(key2, key1)] = matrix_dictionary[(key1, key2)]
 
     return matrix_dictionary
 
 
-
-
-
-
-
-
-
-def plot_sim_matrix(scores, figsize, group_by):
+def plot_sim_matrix(scores, figsize, group_by, sort=True, values=None):
     # Extract unique x and y values
-    x_values = sorted(set(key[0] for key in scores.keys()))
-    y_values = sorted(set(key[1] for key in scores.keys()))
+    if values:
+        x_values = values
+        y_values = values
+    else:
+        x_values = list(set(key[0] for key in scores.keys()))
+        y_values = list(set(key[1] for key in scores.keys()))
+        if sort:
+            x_values = sorted(x_values)
+            y_values = sorted(y_values)
 
     # Create a matrix using NumPy
     matrix = np.zeros((len(y_values), len(x_values)))
