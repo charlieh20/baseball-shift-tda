@@ -112,7 +112,7 @@ def similarity_matrix_dates(df, subset_sample_percentage=0.8, number_of_pd=100, 
                 
                 matrix_dictionary[(date1_key, date2_key)] = sum(matrix_dictionary[(date1_key, date2_key)]) / len(matrix_dictionary[(date1_key, date2_key)])
 
-    return matrix_dictionary, dgms_by_date
+    return matrix_dictionary
 
 def similarity_matrix_handedness(df, subset_sample_percentage=0.8, number_of_pd=100, pairwise_comparisons=100):
 
@@ -211,6 +211,127 @@ def similarity_matrix_rank(df, subset_sample_percentage=0.8, number_of_pd=100, p
                 matrix_dictionary[(rnk1, rnk2)] = sum(matrix_dictionary[(rnk1, rnk2)]) / len(matrix_dictionary[(rnk1, rnk2)])
 
     return matrix_dictionary
+
+
+def similarity_matrix_dates_year(df, subset_sample_percentage=0.8, number_of_pd=100, pairwise_comparisons=100):
+
+    #df[(pd.to_datetime(df.date).dt.year == 2023) & (pd.to_datetime(df.date).dt.month == 9)]
+    filter_dates = [2022, 2023] 
+
+    dgms_by_date = {}
+
+    for dates in filter_dates:
+        
+        date_key = str(dates)
+        
+        tmp_df = df[pd.to_datetime(df.date).dt.year == dates]
+        
+        optimal_degree = find_optimal_degree(tmp_df)
+        
+        for _ in range(number_of_pd):
+            
+            tmp = tmp_df.sample(int(subset_sample_percentage * tmp_df.shape[0]))
+            
+            diagram_points = df_to_pdgm(tmp, optimal_degree)
+            
+            if date_key not in dgms_by_date:
+                dgms_by_date[date_key] = []
+            dgms_by_date[date_key].append(diagram_points)
+        
+    matrix_dictionary = {}
+    visit = set()
+
+    for date1 in filter_dates:
+        for date2 in filter_dates:
+            date1_key = str(date1)
+            date2_key = str(date2)
+            
+            if (date1_key, date2_key) not in visit and (date2_key, date1_key) not in visit:
+                
+                matrix_dictionary[(date1_key, date2_key)] = []
+                
+                for _ in range(pairwise_comparisons):
+                    
+                    dist = random_W_distance(dgms_by_date[date1_key], dgms_by_date[date2_key])
+                    
+                    if dist > 100:
+                        print(date1_key, date2_key)
+                    
+                    matrix_dictionary[(date1_key, date2_key)].append(dist)
+                
+                matrix_dictionary[(date1_key, date2_key)] = sum(matrix_dictionary[(date1_key, date2_key)]) / len(matrix_dictionary[(date1_key, date2_key)])
+
+    return matrix_dictionary
+
+
+
+def similarity_matrix_teams_dates(df, subset_sample_percentage=0.8, number_of_pd=100, pairwise_comparisons=100):
+
+    #df[(pd.to_datetime(df.date).dt.year == 2023) & (pd.to_datetime(df.date).dt.month == 9)]
+
+    dgms_by_date = {}
+    
+    MLB_teams = list(set(df.pitch_team.values))
+    years = [2022, 2023]
+    unique_keys = set()
+
+    for yr in years:
+        
+        for team in MLB_teams:
+        
+            date_key = team + str(yr)
+            
+            unique_keys.add(date_key)
+            
+            tmp_df = df[(pd.to_datetime(df.date).dt.year == yr) & (df.pitch_team == team)]
+            
+            optimal_degree = find_optimal_degree(tmp_df)
+            
+            for _ in range(number_of_pd):
+                
+                tmp = tmp_df.sample(int(subset_sample_percentage * tmp_df.shape[0]))
+                
+                try:
+                    diagram_points = df_to_pdgm(tmp, optimal_degree)
+                
+                except:
+                    _ -= 1
+                    continue
+                
+                if date_key not in dgms_by_date:
+                    dgms_by_date[date_key] = []
+                dgms_by_date[date_key].append(diagram_points)
+   #for k, v in dgms_by_date.items():
+    #    print(k, v)
+    matrix_dictionary = {}
+    visit = set()
+
+    for key1 in unique_keys:
+        for key2 in unique_keys:
+            
+            if (key1, key2) not in visit and (key2, key1) not in visit and key1 in dgms_by_date and key2 in dgms_by_date:
+                
+                matrix_dictionary[(key1, key2)] = []
+                
+                for _ in range(pairwise_comparisons):
+                    
+                    dist = random_W_distance(dgms_by_date[key1], dgms_by_date[key2])
+                    
+                    if dist > 100:
+                        print(key1, key2)
+                    
+                    matrix_dictionary[(key1, key2)].append(dist)
+                
+                matrix_dictionary[(key1, key2)] = sum(matrix_dictionary[(key1, key2)]) / len(matrix_dictionary[(key1, key2)])
+
+    return matrix_dictionary
+
+
+
+
+
+
+
 
 
 def plot_sim_matrix(scores, figsize, group_by):
