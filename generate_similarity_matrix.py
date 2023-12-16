@@ -407,6 +407,16 @@ def similarity_matrix_years_hand(df, subset_sample_percentage=0.8, number_of_pd=
 
 
 def plot_sim_matrix(scores, figsize, group_by, sort=True, values=None):
+    def get_text_color(rgb_values):        
+        # Calculate perceived brightness (luminance) of the RGB values
+        brightness = rgb_values[0] + 0.8 * rgb_values[1] + 0.114 * rgb_values[2]
+        
+        # Use black text for light backgrounds and white text for dark backgrounds
+        if brightness > 0.4:
+            return 'black'
+        else:
+            return 'white'
+    
     # Extract unique x and y values
     if values:
         x_values = values
@@ -436,7 +446,9 @@ def plot_sim_matrix(scores, figsize, group_by, sort=True, values=None):
     # Add values in each cell
     for i in range(len(y_values)):
         for j in range(len(x_values)):
-            plt.text(j, i, f'{matrix[i, j]:.2f}', ha='center', va='center', color='w')
+            cell_value = matrix[i, j]
+            text_color = get_text_color(im.cmap(cell_value)[:3])  # Get RGB values of the color
+            plt.text(j, i, f'{cell_value:.2f}', ha='center', va='center', color=text_color)
 
     # Set tick labels
     plt.xticks(np.arange(len(x_values)), x_values)
